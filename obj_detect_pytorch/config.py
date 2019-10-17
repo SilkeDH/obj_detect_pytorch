@@ -32,8 +32,12 @@ train_args = { 'arg1': {'default': 1,
 }
 
 # !!! deepaas>=0.5.0 calls get_test_args() to get args for 'predict'
-predict_args = { 'arg2': {'default': 1,
-                          'help': '',
-                          'required': False
+predict_args = { 'outputpath': {'default': "/tmp",
+                                'help': 'Path for loading the model',
+                                'required': True
+                               },
+                 'threshold': {'default': 0.5,
+                               'help': 'Threshold of probability ',
+                               'required': False
                          },
 }

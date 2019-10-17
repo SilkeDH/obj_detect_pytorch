@@ -7,7 +7,9 @@ import argparse
 import pkg_resources
 # import project's config.py
 import obj_detect_pytorch.config as cfg
-
+import torchvision
+from PIL import Image
+import obj_detect_pytorch.models.model_utils as mutils
 
 def get_metadata():
     """
@@ -45,10 +47,31 @@ def predict_file(*args):
 
 
 def predict_data(*args):
-    """
-    Function to make prediction on an uploaded file
-    """
-    message = 'Not implemented in the model (predict_data)'
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    model.eval()
+
+    COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()
+
+    outputpath=args[0]["outputpath"]
+    threshold= float(args[0]["threshold"])
+    thefile= args[0]['files'][0]
+    thename= thefile.filename
+    thepath= outputpath + "/" +thename
+    thefile.save(thepath)    
+    img = Image.open(thepath) 
+    transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
+    img = transform(img) 
+    pred = model([img]) 
+    pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())] 
+    pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] 
+    pred_score = list(pred[0]['scores'].detach().numpy())
+    pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1] 
+    pred_boxes = pred_boxes[:pred_t+1]
+    pred_class = pred_class[:pred_t+1]
+    pred_score = pred_score[:pred_t+1]
+    
+    message = mutils.format_prediction(pred_boxes,pred_class, pred_score)
+
     return message
 
 

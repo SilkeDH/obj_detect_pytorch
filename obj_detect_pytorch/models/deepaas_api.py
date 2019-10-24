@@ -12,6 +12,8 @@ import torchvision
 from PIL import Image
 import obj_detect_pytorch.models.model_utils as mutils
 #import obj_detect_pytorch.models.create_resfiles as resfiles 
+from fpdf import FPDF
+import flask
 
 def get_metadata():
     """
@@ -63,12 +65,7 @@ def predict_data(*args):
     img = Image.open(thepath) 
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
     img = transform(img) 
-    
-
-    # Clear possible pre-existing sessions.
-    backend.clear_session()
     pred = model([img]) 
-    prediction_results["prediction"].update(prediction)
     pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())] 
     pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] 
     pred_score = list(pred[0]['scores'].detach().numpy())
@@ -77,13 +74,39 @@ def predict_data(*args):
     pred_class = pred_class[:pred_t+1]
     pred_score = pred_score[:pred_t+1]
               
-    # Build result file and stream it back
     #result_image = resfiles.merge_images()
-    #result_pdf = resfiles.create_pdf(result_image,prediction_results["prediction"])
+    
+    result = Image.new("RGB", (1280, 960))
+    img = Image.open(thepath)
+    img.thumbnail((640, 480), Image.ANTIALIAS)
+    x = 0 % 2 * 640
+    y = 0 // 2 * 480
+    w, h = img.size
+    result.paste(img, (x, y, x + w, y + h))
+    
+    merged_file = '{}/merged_maps.png'.format(cfg.DATA_DIR)
+    result.save(merged_file)
+
+    ##create pdf
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.image(merged_file, 0, 0, w=210)
+
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, 'Labelwise Accuracy:', ln=1)
+    pdf.set_font('Arial', size=14)
+    
+    results = '{}/prediction_results.pdf'.format(cfg.DATA_DIR)
+    result_pdf = pdf.output(results,'F')
+
+
+    
+    #result_pdf = resfiles.create_pdf(result_image,pred)
 
     #return flask.send_file(filename_or_fp=result_pdf,
-                           #as_attachment=True,
-                           #attachment_filename=os.path.basename(result_pdf))
+                          # as_attachment=True,
+                          # attachment_filename=os.path.basename(result_pdf))
     
     message = mutils.format_prediction(pred_boxes,pred_class, pred_score)
 

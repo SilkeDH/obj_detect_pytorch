@@ -1,9 +1,19 @@
-obj_detect_pytorch
+DEEP Open Catalogue: Object Detection and Classification
 ==============================
 
 [![Build Status](https://jenkins.indigo-datacloud.eu:8080/buildStatus/icon?job=Pipeline-as-code/DEEP-OC-org/obj_detect_pytorch/master)](https://jenkins.indigo-datacloud.eu:8080/job/Pipeline-as-code/job/DEEP-OC-org/job/obj_detect_pytorch/job/master)
 
-Object detection with pytorch
+**Author:** Silke Donayre
+**Project:** This work is part of the [DEEP Hybrid-DataCloud](https://deep-hybrid-datacloud.eu/) project that has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 777435.
+
+This is a plug-and-play tool for object detection and classification using deep neural networks (Faster R-CNN ResNet-50 FPN Architecture) that were already pretrained on the [COCO Dataset](http://cocodataset.org/#home). The code uses the Pytorch Library, more information about it can be found at [Pytorch-Object-Detection](https://pytorch.org/docs/stable/torchvision/models.html#object-detection-instance-segmentation-and-person-keypoint-detection). 
+
+This module works on uploaded pictures and gives as ouput the rectangle coordinates x1,y1 and x2,y2 were the classificated object is located. It also provides you the probability of the classified object.
+
+<p align="center">
+<img src="./reports/figures/pytorchobj.png" alt="spectrogram" width="400">
+</p>
+
 
 Project Organization
 ------------

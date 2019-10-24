@@ -8,23 +8,8 @@ from os import path
 # identify basedir for the package
 BASE_DIR = path.dirname(path.normpath(path.dirname(__file__)))
 
+DATA_DIR = path.join(BASE_DIR,'data') # Location of model data and output files
 
-# Training and predict(deepaas>=0.5.0) arguments as a dict of dicts 
-# with the following structure to feed the deepaas API parser:
-# (see also get_train_args() )
-# { 'arg1' : {'default': 1,       # default value
-#             'help': '',         # can be an empty string
-#             'required': False   # bool
-#             },
-#   'arg2' : {'default': 'value1',
-#             'choices': ['value1', 'value2', 'value3'],
-#             'help': 'multi-choice argument',
-#             'required': False
-#             },
-#   'arg3' : {...
-#             },
-# ...
-# }
 train_args = { 'arg1': {'default': 1,
                         'help': '',
                         'required': False

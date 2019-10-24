@@ -5,11 +5,13 @@ Model description
 
 import argparse
 import pkg_resources
+import os
 # import project's config.py
 import obj_detect_pytorch.config as cfg
 import torchvision
 from PIL import Image
 import obj_detect_pytorch.models.model_utils as mutils
+#import obj_detect_pytorch.models.create_resfiles as resfiles 
 
 def get_metadata():
     """
@@ -61,7 +63,12 @@ def predict_data(*args):
     img = Image.open(thepath) 
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
     img = transform(img) 
+    
+
+    # Clear possible pre-existing sessions.
+    backend.clear_session()
     pred = model([img]) 
+    prediction_results["prediction"].update(prediction)
     pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())] 
     pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] 
     pred_score = list(pred[0]['scores'].detach().numpy())
@@ -69,6 +76,14 @@ def predict_data(*args):
     pred_boxes = pred_boxes[:pred_t+1]
     pred_class = pred_class[:pred_t+1]
     pred_score = pred_score[:pred_t+1]
+              
+    # Build result file and stream it back
+    #result_image = resfiles.merge_images()
+    #result_pdf = resfiles.create_pdf(result_image,prediction_results["prediction"])
+
+    #return flask.send_file(filename_or_fp=result_pdf,
+                           #as_attachment=True,
+                           #attachment_filename=os.path.basename(result_pdf))
     
     message = mutils.format_prediction(pred_boxes,pred_class, pred_score)
 

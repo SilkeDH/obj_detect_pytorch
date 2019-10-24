@@ -8,11 +8,12 @@ DEEP Open Catalogue: Object Detection and Classification
 
 This is a plug-and-play tool for object detection and classification using deep neural networks (Faster R-CNN ResNet-50 FPN Architecture) that were already pretrained on the [COCO Dataset](http://cocodataset.org/#home). The code uses the Pytorch Library, more information about it can be found at [Pytorch-Object-Detection](https://pytorch.org/docs/stable/torchvision/models.html#object-detection-instance-segmentation-and-person-keypoint-detection). 
 
-This module works on uploaded pictures and gives as ouput the rectangle coordinates x1,y1 and x2,y2 were the classificated object is located. It also provides you the probability of the classified object.
+This module works on uploaded pictures and gives as ouput the rectangle coordinates x1,y1 and x2,y2 were the classificated object is located. It also provides you the probability of the detected object.
 
 <p align="center">
 <img src="./reports/figures/pytorchobj.png" alt="spectrogram" width="400">
 </p>
+
 
 
 Project Organization
@@ -67,4 +68,35 @@ Project Organization
 
 --------
 
+ **Requirements:**
+ 
+- This project has been tested in Ubuntu 18.04 with Python 3.6.5. Further package requirements are described in the `requirements.txt` file.
+- It is a requirement to have [Pytorch>=1.3.0 installed](https://pytorch.org/get-started/locally/). 
+
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+
+## Workflow
+
+
+### Test
+
+You can test the posenet module on a number of tasks: predict a single local image file (or url) or predict multiple images (or urls). 
+
+
+
+#### Running the API
+
+
+To access this package's complete functionality (both for training and predicting) through an API you have to install the [DEEPaaS](https://github.com/indigo-dc/DEEPaaS) package:
+
+```bash
+git clone https://github.com/indigo-dc/deepaas
+cd deepaas
+pip install -e .
+```
+
+and run `deepaas-run --listen-ip 0.0.0.0`.
+From there you will be able to run training and predictions of this package  using `model_name=posenetclas`.
+
+<img src="./reports/figures/deepaas.png" alt="deepaas" width="1000"/>
+

@@ -11,9 +11,10 @@ import obj_detect_pytorch.config as cfg
 import torchvision
 from PIL import Image
 import obj_detect_pytorch.models.model_utils as mutils
-#import obj_detect_pytorch.models.create_resfiles as resfiles 
+import obj_detect_pytorch.models.create_resfiles as resfiles 
 from fpdf import FPDF
 import flask
+import cv2
 
 def get_metadata():
     """
@@ -54,15 +55,20 @@ def predict_data(*args):
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     model.eval()
 
-    COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()
-
-    outputpath=args[0]["outputpath"]
+    COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()  #Category names trained.
+ 
+    #Reading the image and saving it.
+    outputpath=args[0]["outputpath"]  
     threshold= float(args[0]["threshold"])
     thefile= args[0]['files'][0]
     thename= thefile.filename
     thepath= outputpath + "/" +thename
     thefile.save(thepath)    
+    other_path = '{}/Input_image_patch.png'.format(cfg.DATA_DIR)
     img = Image.open(thepath) 
+    img.save(other_path)
+    
+    #Prediction and results.
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
     img = transform(img) 
     pred = model([img]) 
@@ -70,43 +76,33 @@ def predict_data(*args):
     pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] 
     pred_score = list(pred[0]['scores'].detach().numpy())
     pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1] 
-    pred_boxes = pred_boxes[:pred_t+1]
-    pred_class = pred_class[:pred_t+1]
-    pred_score = pred_score[:pred_t+1]
+    pred_boxes = pred_boxes[:pred_t+1]   #Boxes.
+    pred_class = pred_class[:pred_t+1]   #Name of the class.
+    pred_score = pred_score[:pred_t+1]   #Prediction probability.
               
-    #result_image = resfiles.merge_images()
+    #PDF Format:    
+    #Drawing the boxes around the objects in the images + putting text + probabilities. 
+    img_cv = cv2.imread(thepath) # Read image with cv2
+    #img_cv = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB) # Convert to RGB
+    for i in range(len(pred_boxes)):
+        cv2.rectangle(img_cv, pred_boxes[i][0], pred_boxes[i][1],color= tuple(args[0]["box_color"]), thickness= int(args[0]["box_thickness"])) # Draw rectangle.
+        cv2.putText(img_cv,str(pred_class[i]) + " " + str(float("{0:.2f}".format(pred_score[i]))), pred_boxes[i][0],  cv2.FONT_HERSHEY_SIMPLEX,
+                    int(args[0]["text_size"]), (255,255,0),thickness= int(args[0]["text_thickness"])) 
+    class_path = '{}/Classification_map.png'.format(cfg.DATA_DIR)
+    cv2.imwrite(class_path,img_cv)    
     
-    result = Image.new("RGB", (1280, 960))
-    img = Image.open(thepath)
-    img.thumbnail((640, 480), Image.ANTIALIAS)
-    x = 0 % 2 * 640
-    y = 0 // 2 * 480
-    w, h = img.size
-    result.paste(img, (x, y, x + w, y + h))
-    
-    merged_file = '{}/merged_maps.png'.format(cfg.DATA_DIR)
-    result.save(merged_file)
+    #Merge original image with the classified one.
+    result_image = resfiles.merge_images()
 
-    ##create pdf
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.image(merged_file, 0, 0, w=210)
+    #Create the PDF file.
+    result_pdf = resfiles.create_pdf(result_image, pred_boxes, pred_class, pred_score)
 
-    pdf.add_page()
-    pdf.set_font('Arial', 'B', 16)
-    pdf.cell(0, 10, 'Labelwise Accuracy:', ln=1)
-    pdf.set_font('Arial', size=14)
-    
-    results = '{}/prediction_results.pdf'.format(cfg.DATA_DIR)
-    pdf.output(results,'F')
-
-    #result_pdf = resfiles.create_pdf(result_image,pred)
-
-    return flask.send_file(filename_or_fp=results,
+    return flask.send_file(filename_or_fp=result_pdf,
                            as_attachment=True,
-                           attachment_filename=os.path.basename(results))
-    
-    #message = mutils.format_prediction(pred_boxes,pred_class, pred_score)
+                           attachment_filename=os.path.basename(result_pdf))
+
+    #JSON format:
+    #message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
 
     return message
 

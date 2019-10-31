@@ -21,8 +21,28 @@ predict_args = { 'outputpath': {'default': "/tmp",
                                 'help': 'Path for loading the model',
                                 'required': True
                                },
-                 'threshold': {'default': 0.5,
-                               'help': 'Threshold of probability ',
+                 'threshold': {'default': 0.8,
+                               'help': 'Threshold of probability (0.0 - 1.0).',
+                               'required': False
+                         },
+                'box_color': {'default': '(0,255,0)',
+                               'help': 'Color of the boxes. Follows the RGB (0-255) model: (R,G,B).',
+                               'required': False
+                         },
+                'box_thickness': {'default': 2,
+                               'help': 'Thickness of the box in pixels (Positive number starting from 1).',
+                               'required': False
+                         },
+                'text_color': {'default':'(255,255,0)',
+                               'help': 'Color of the boxes. Follows the RGB (0-255) model: (R,G,B).',
+                               'required': False
+                         },
+                'text_size': {'default': 2,
+                               'help': 'Size of the text in pixels (Positive number starting from 1).',
+                               'required': False
+                         },
+                'text_thickness': {'default': 1,
+                               'help': 'Thickness of the text in pixels (Positive number starting from 1). ',
                                'required': False
                          },
 }

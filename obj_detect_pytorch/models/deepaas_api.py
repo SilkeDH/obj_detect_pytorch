@@ -80,31 +80,31 @@ def predict_data(*args):
     pred_class = pred_class[:pred_t+1]   #Name of the class.
     pred_score = pred_score[:pred_t+1]   #Prediction probability.
               
-    #PDF Format:    
-    #Drawing the boxes around the objects in the images + putting text + probabilities. 
-    img_cv = cv2.imread(thepath) # Read image with cv2
-    #img_cv = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB) # Convert to RGB
-    for i in range(len(pred_boxes)):
-        cv2.rectangle(img_cv, pred_boxes[i][0], pred_boxes[i][1],color= tuple(args[0]["box_color"]), thickness= int(args[0]["box_thickness"])) # Draw rectangle.
-        cv2.putText(img_cv,str(pred_class[i]) + " " + str(float("{0:.2f}".format(pred_score[i]))), pred_boxes[i][0],  cv2.FONT_HERSHEY_SIMPLEX,
-                    int(args[0]["text_size"]), (255,255,0),thickness= int(args[0]["text_thickness"])) 
-    class_path = '{}/Classification_map.png'.format(cfg.DATA_DIR)
-    cv2.imwrite(class_path,img_cv)    
+    if (str(args[0]["output_type"]) == "pdf"):
+        #PDF Format:    
+        #Drawing the boxes around the objects in the images + putting text + probabilities. 
+        img_cv = cv2.imread(thepath) # Read image with cv2
+        for i in range(len(pred_boxes)):
+            cv2.rectangle(img_cv, pred_boxes[i][0], pred_boxes[i][1], color= (0,255,255) , 
+                          thickness= int(args[0]["box_thickness"]))  # Draws rectangle.
+            cv2.putText(img_cv,str(pred_class[i]) + " " + str(float("{0:.4f}".format(pred_score[i]))), pred_boxes[i][0],
+                    cv2.FONT_HERSHEY_SIMPLEX, int(args[0]["text_size"]), (0,255,255),thickness= int(args[0]["text_thickness"])) 
+        class_path = '{}/Classification_map.png'.format(cfg.DATA_DIR)
+        cv2.imwrite(class_path,img_cv)    
     
-    #Merge original image with the classified one.
-    result_image = resfiles.merge_images()
+        #Merge original image with the classified one.
+        result_image = resfiles.merge_images()
 
-    #Create the PDF file.
-    result_pdf = resfiles.create_pdf(result_image, pred_boxes, pred_class, pred_score)
+        #Create the PDF file.
+        result_pdf = resfiles.create_pdf(result_image, pred_boxes, pred_class, pred_score)
 
-    return flask.send_file(filename_or_fp=result_pdf,
+        return flask.send_file(filename_or_fp=result_pdf,
                            as_attachment=True,
                            attachment_filename=os.path.basename(result_pdf))
-
-    #JSON format:
-    #message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
-
-    return message
+    else: 
+        #JSON format:
+        message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
+        return message
 
 
 def predict_url(*args):

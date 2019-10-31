@@ -98,17 +98,15 @@ def predict_data(*args):
     pdf.set_font('Arial', size=14)
     
     results = '{}/prediction_results.pdf'.format(cfg.DATA_DIR)
-    result_pdf = pdf.output(results,'F')
+    pdf.output(results,'F')
 
-
-    
     #result_pdf = resfiles.create_pdf(result_image,pred)
 
-    #return flask.send_file(filename_or_fp=result_pdf,
-                          # as_attachment=True,
-                          # attachment_filename=os.path.basename(result_pdf))
+    return flask.send_file(filename_or_fp=results,
+                           as_attachment=True,
+                           attachment_filename=os.path.basename(results))
     
-    message = mutils.format_prediction(pred_boxes,pred_class, pred_score)
+    #message = mutils.format_prediction(pred_boxes,pred_class, pred_score)
 
     return message
 

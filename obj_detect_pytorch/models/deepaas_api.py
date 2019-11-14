@@ -6,17 +6,18 @@ from webargs import fields
 import argparse
 import pkg_resources
 import os
-# import project's config.py
 import obj_detect_pytorch.config as cfg
 import torchvision
 from PIL import Image
 import obj_detect_pytorch.models.model_utils as mutils
 import obj_detect_pytorch.models.create_resfiles as resfiles 
 from fpdf import FPDF
-#import flask
 import cv2
 
+
+
 def get_metadata():
+    #Metadata of the model:
     module = __name__.split('.', 1)
     pkg = pkg_resources.get_distribution(module[0])  
     meta = {
@@ -51,6 +52,7 @@ def warm():
 #import flaat
 #@flaat.login_required()
 def get_train_args():
+    #Training arguments:
     return {
         "arg1": fields.Str(
             required=False,  # force the user to define the value
@@ -61,6 +63,7 @@ def get_train_args():
     }
 
 def train(train_args):
+    #Training of the model:
     run_results = { "status": "Not implemented in the model (train)",
                     "train_args": [],
                     "training": [],
@@ -68,62 +71,80 @@ def train(train_args):
     run_results["train_args"].append(train_args)
     return run_results
     
-# !!! deepaas>=0.5.0 calls get_test_args() to get args for 'predict'
+
 def get_predict_args():
-    """
-    predict_args = cfg.predict_args
-
-    # convert default values and possible 'choices' into strings
-    for key, val in predict_args.items():
-        val['default'] = str(val['default'])  # yaml.safe_dump(val['default']) #json.dumps(val['default'])
-        if 'choices' in val:
-            val['choices'] = [str(item) for item in val['choices']]
-        print(val['default'], type(val['default']))
-
-    return predict_args
-    """
-    
+    #Prediction arguments:
     return {
-        "data": fields.Field(
+        "files": fields.Field(
             description="Data file to perform inference on.",
-            required=False,
-            missing=None,
+            required=True,
             type="file",
-            location="form")
+            location="form"),
+        
+        "outputpath": fields.Str(
+            required=False,  # force the user to define the value
+            missing="/temp",  # default value to use
+            description="Specifies in which path the image should be stored."  # help string
+        ),
+        
+        "outputtype": fields.Str(
+            required=False,  # force the user to define the value
+            missing="json",  # default value to use
+            enum=["json", "pdf"],  # list of choices
+            description="Specifies the output format."  # help string
+        ),
+        
+        "threshold": fields.Str(
+            required=False,  # force the user to define the value
+            missing= 0.8,  # default value to use
+            description="Threshold of probability (0.0 - 1.0)."  # help string
+        ),
+        
+        "box_thickness": fields.Str(
+            required=False,  # force the user to define the value
+            missing= 2,  # default value to use
+            description="Thickness of the box in pixels (Positive number starting from 1)."  # help string
+        ),
+        
+        "text_size": fields.Str(
+            required=False,  # force the user to define the value
+            missing= 1 ,  # default value to use
+            description="Size of the text in pixels (Positive number starting from 1)."  # help string
+        ),
+        
+        "text_thickness": fields.Str(
+            required=False,  # force the user to define the value
+            missing= 2,  # default value to use
+            description="Thickness of the text in pixels (Positive number starting from 1)."  # help string
+        ),
      }
 
 # during development it might be practical 
 # to check your code from the command line
     
-def predict_file(*args):
-    """
-    Function to make prediction on a local file
-    """
+def predict_file(**args):
     message = 'Not implemented in the model (predict_file)'
     return message
 
 
-def predict(*args):
+def predict(**args):
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     model.eval()
 
     COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()  #Category names trained.
  
     #Reading the image and saving it.
-    outputpath=args[0]["outputpath"]  
-    threshold= float(args[0]["threshold"])
-    thefile= args[0]['files'][0]
-    thename= thefile.filename
-    thepath= outputpath + "/" +thename
-    thefile.save(thepath)    
+    outputpath=args['outputpath'] 
+    threshold= float(args['threshold'])
+    thefile= args['files']
+    img1 = Image.open(thefile.filename)  
     other_path = '{}/Input_image_patch.png'.format(cfg.DATA_DIR)
-    img = Image.open(thepath) 
-    img.save(other_path)
+    img1.save(other_path)
     
     #Prediction and results.
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
-    img = transform(img) 
-    pred = model([img]) 
+    img1 = transform(img1) 
+    pred = model([img1]) 
     pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())] 
     pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] 
     pred_score = list(pred[0]['scores'].detach().numpy())
@@ -132,16 +153,15 @@ def predict(*args):
     pred_class = pred_class[:pred_t+1]   #Name of the class.
     pred_score = pred_score[:pred_t+1]   #Prediction probability.
               
-    if (str(args[0]["output_type"]) == "pdf"):  
-        """"
+    if (args["outputtype"] == "pdf"):  
         #PDF Format:    
         #Drawing the boxes around the objects in the images + putting text + probabilities. 
         img_cv = cv2.imread(thepath) # Read image with cv2
         for i in range(len(pred_boxes)):
             cv2.rectangle(img_cv, pred_boxes[i][0], pred_boxes[i][1], color= (0,255,255) , 
-                          thickness= int(args[0]["box_thickness"]))  # Draws rectangle.
+                          thickness= int(args['box_thickness']))  # Draws rectangle.
             cv2.putText(img_cv,str(pred_class[i]) + " " + str(float("{0:.4f}".format(pred_score[i]))), pred_boxes[i][0],
-                    cv2.FONT_HERSHEY_SIMPLEX, int(args[0]["text_size"]), (0,255,255),thickness= int(args[0]["text_thickness"])) 
+                    cv2.FONT_HERSHEY_SIMPLEX, int(args['text_size']), (0,255,255),thickness= int(args['text_thickness'])) 
         class_path = '{}/Classification_map.png'.format(cfg.DATA_DIR)
         cv2.imwrite(class_path,img_cv)    
     
@@ -154,30 +174,16 @@ def predict(*args):
         return flask.send_file(filename_or_fp=result_pdf,
                            as_attachment=True,
                            attachment_filename=os.path.basename(result_pdf))
-                           """
-        return null
+                         
+        message = 'Not implemented in the model (predict_file)'
+        return message
+        
     else: 
         #JSON format:
         message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
         return message
 
-
-    """
-def predict_url(*args):
-
-    Function to make prediction on a URL
-
-    message = 'Not implemented in the model (predict_url)'
-    return message
-"""
-
-
 def main():
-    """
-       Runs above-described functions depending on input parameters
-       (see below an example)
-    """
-
     if args.method == 'get_metadata':
         get_metadata()       
     elif args.method == 'train':

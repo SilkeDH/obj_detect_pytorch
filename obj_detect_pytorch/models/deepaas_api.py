@@ -2,7 +2,7 @@
 """
 Model description
 """
-
+from webargs import fields
 import argparse
 import pkg_resources
 import os
@@ -13,17 +13,12 @@ from PIL import Image
 import obj_detect_pytorch.models.model_utils as mutils
 import obj_detect_pytorch.models.create_resfiles as resfiles 
 from fpdf import FPDF
-import flask
+#import flask
 import cv2
 
 def get_metadata():
-    """
-    Function to read metadata
-    """
-
     module = __name__.split('.', 1)
-
-    pkg = pkg_resources.get_distribution(module[0])
+    pkg = pkg_resources.get_distribution(module[0])  
     meta = {
         'Name': None,
         'Version': None,
@@ -42,7 +37,64 @@ def get_metadata():
 
     return meta
 
+def warm():
+    """
+    This is called when the model is loaded, before the API is spawned. 
+    If implemented, it should prepare the model for execution. This is useful 
+    for loading it into memory, perform any kind of preliminary checks, etc.
+    """
 
+###
+# Uncomment the following two lines
+# if you allow only authorized people to do training
+###
+#import flaat
+#@flaat.login_required()
+def get_train_args():
+    return {
+        "arg1": fields.Str(
+            required=False,  # force the user to define the value
+            missing="foo",  # default value to use
+            enum=["choice1", "choice2"],  # list of choices
+            description="Argument one"  # help string
+        ),
+    }
+
+def train(train_args):
+    run_results = { "status": "Not implemented in the model (train)",
+                    "train_args": [],
+                    "training": [],
+                  }
+    run_results["train_args"].append(train_args)
+    return run_results
+    
+# !!! deepaas>=0.5.0 calls get_test_args() to get args for 'predict'
+def get_predict_args():
+    """
+    predict_args = cfg.predict_args
+
+    # convert default values and possible 'choices' into strings
+    for key, val in predict_args.items():
+        val['default'] = str(val['default'])  # yaml.safe_dump(val['default']) #json.dumps(val['default'])
+        if 'choices' in val:
+            val['choices'] = [str(item) for item in val['choices']]
+        print(val['default'], type(val['default']))
+
+    return predict_args
+    """
+    
+    return {
+        "data": fields.Field(
+            description="Data file to perform inference on.",
+            required=False,
+            missing=None,
+            type="file",
+            location="form")
+     }
+
+# during development it might be practical 
+# to check your code from the command line
+    
 def predict_file(*args):
     """
     Function to make prediction on a local file
@@ -51,7 +103,7 @@ def predict_file(*args):
     return message
 
 
-def predict_data(*args):
+def predict(*args):
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     model.eval()
 
@@ -80,7 +132,8 @@ def predict_data(*args):
     pred_class = pred_class[:pred_t+1]   #Name of the class.
     pred_score = pred_score[:pred_t+1]   #Prediction probability.
               
-    if (str(args[0]["output_type"]) == "pdf"):
+    if (str(args[0]["output_type"]) == "pdf"):  
+        """"
         #PDF Format:    
         #Drawing the boxes around the objects in the images + putting text + probabilities. 
         img_cv = cv2.imread(thepath) # Read image with cv2
@@ -101,74 +154,24 @@ def predict_data(*args):
         return flask.send_file(filename_or_fp=result_pdf,
                            as_attachment=True,
                            attachment_filename=os.path.basename(result_pdf))
+                           """
+        return null
     else: 
         #JSON format:
         message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
         return message
 
 
+    """
 def predict_url(*args):
-    """
+
     Function to make prediction on a URL
-    """
+
     message = 'Not implemented in the model (predict_url)'
     return message
+"""
 
 
-###
-# Uncomment the following two lines
-# if you allow only authorized people to do training
-###
-#import flaat
-#@flaat.login_required()
-def train(train_args):
-    """
-    Train network
-    train_args : dict
-        Json dict with the user's configuration parameters.
-        Can be loaded with json.loads() or with yaml.safe_load()    
-    """
-
-    run_results = { "status": "Not implemented in the model (train)",
-                    "train_args": [],
-                    "training": [],
-                  }
-
-    run_results["train_args"].append(train_args)
-
-    print(run_results)
-    return run_results
-
-
-def get_train_args():
-    """
-    Returns a dict of dicts to feed the deepaas API parser
-    """
-    train_args = cfg.train_args
-
-    # convert default values and possible 'choices' into strings
-    for key, val in train_args.items():
-        val['default'] = str(val['default']) #yaml.safe_dump(val['default']) #json.dumps(val['default'])
-        if 'choices' in val:
-            val['choices'] = [str(item) for item in val['choices']]
-
-    return train_args
-
-# !!! deepaas>=0.5.0 calls get_test_args() to get args for 'predict'
-def get_test_args():
-    predict_args = cfg.predict_args
-
-    # convert default values and possible 'choices' into strings
-    for key, val in predict_args.items():
-        val['default'] = str(val['default'])  # yaml.safe_dump(val['default']) #json.dumps(val['default'])
-        if 'choices' in val:
-            val['choices'] = [str(item) for item in val['choices']]
-        print(val['default'], type(val['default']))
-
-    return predict_args
-
-# during development it might be practical 
-# to check your code from the command line
 def main():
     """
        Runs above-described functions depending on input parameters
@@ -196,7 +199,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--method', type=str, default="get_metadata",
                         help='Method to use: get_metadata (default), \
-                        predict_file, predict_data, predict_url, train')
+                        predict_file, predict, train')
     args = parser.parse_args()
 
     main()

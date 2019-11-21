@@ -16,12 +16,13 @@ import cv2
 import ignite
 from torchvision import datasets, transforms, models
 from torch.autograd import Variable
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
 import json
 import glob
-import csv
 import torch
-import gc
 import numpy as np
+import pandas as pd
 
 
 def get_metadata():
@@ -134,42 +135,107 @@ def predict_file(**args):
     message = 'Not implemented in the model (predict_file)'
     return message
 
+def predict_image(image):
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    model.eval()
+    test_transforms = transforms.Compose([
+                                      transforms.ToTensor(),
+                                     ])
+    image_tensor = test_transforms(image).float()
+    image_tensor = image_tensor.unsqueeze_(0)
+    input = Variable(image_tensor)
+    input = input.to(device)
+    output = model(input)
+    index = output.data.cpu().numpy().argmax()
+    return index
+
+class COCO2017(Dataset):
+    """COCO 2017 dataset."""
+
+    def __init__(self, json_file, root_dir, transform=None):
+        """
+        Args:
+            json_file (string): Path to the json file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        if json_file is not None:
+            with open(json_file,'r') as COCO:
+                js = json.loads(COCO.read())
+                val_categories = json.dumps(js) 
+                
+        image_ids = []
+        categ_ids = []
+        #Get categories of the validation images and ids.
+        for i in range(32800):
+            image_id = json.dumps(js['annotations'][i]['image_id'])
+            miss = 12 - len(str(image_id))
+            image_unique_id = ("0" * miss) + str(str(image_id))
+            image_ids.append(image_unique_id)
+            categ_ids.append(json.dumps(js['annotations'][i]['category_id']))
+
+        dataset = {'ImageID': image_ids,'Categories':categ_ids}
+        dataset = pd.DataFrame.from_dict(dataset)
+        dataset = dataset.groupby('ImageID', as_index=False).agg(lambda x: x.tolist())
+        dataset
+        print(len(dataset))
+        self.landmarks_frame = dataset
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.landmarks_frame)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        img_name = os.path.join(self.root_dir,
+                                self.landmarks_frame.iloc[idx, 0] + ".jpg")
+        image = Image.open(img_name)
+        landmarks = self.landmarks_frame.iloc[idx, 1:]
+        landmarks = np.array([landmarks])
+        sample = {'image': image, 'landmarks': landmarks}
+
+        if self.transform:
+            sample['image'] = self.transform(sample['image'])
+
+        return sample
+
+
 def get_metrics():
     #Classifier metrics. (Download COCO 2017 dataset for that.) 
     #Here is the summary of the accuracy for the model trained on the instances set of COCO train2017 and evaluated on COCO   
     #val2017. Box AP = 37.0
-    """
-    cat_2017 = 'obj_detect_pytorch/obj_detect_pytorch/dataset/stuff_val2017.json'
-    if cat_2017 is not None:
-        with open(cat_2017,'r') as COCO:
-            js = json.loads(COCO.read())
-            val_categories = json.dumps(js) 
-            
-    image_ids = []
-    categ_ids = []
-    #Get categories of the validation images and ids.
-    for i in range(32800):
-        image_ids.append(json.dumps(js['annotations'][i]['image_id']))
-        categ_ids.append(json.dumps(js['annotations'][i]['category_id']))
+    test_transforms = transforms.Compose([
+                                      transforms.ToTensor(),
+                                     ])
+    coco_dataset = COCO2017(json_file='obj_detect_pytorch/obj_detect_pytorch/dataset/stuff_val2017.json',
+                        root_dir='obj_detect_pytorch/obj_detect_pytorch/dataset/val2017/',
+                        transform = test_transforms)
+    loader = torch.utils.data.DataLoader(coco_dataset, batch_size=5)
+    dataiter = iter(loader)
+    images, labels = dataiter.next()
+    to_pil = transforms.ToPILImage()
     
-    image_unique_id = list(set(image_ids))
-    
-    #Adding ceros to the names:
-    for i in range(5000):
-        miss = 12 - len(str(image_unique_id[i]))
-        image_unique_id[i] = ("0" * miss) + str(str(image_unique_id[i]))
+    for ii in range(len(images)):
+        image = to_pil(images[ii])
+        index = predict_image(image)
+        sub = fig.add_subplot(1, len(images), ii+1)
+        res = int(labels[ii]) == index
+       
 
-    
     with open('categories', 'w', newline='') as myfile:
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         wr.writerow(index)
-    """
+        
     return "hi"
  
 
 def predict(**args):
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     model.eval()
+    """
     COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()  #Category names trained.
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
     #Reading the image and saving it.
@@ -190,7 +256,9 @@ def predict(**args):
     pred_boxes = pred_boxes[:pred_t+1]   #Boxes.
     pred_class = pred_class[:pred_t+1]   #Name of the class.
     pred_score = pred_score[:pred_t+1]   #Prediction probability.
-
+    """
+    a = get_metrics()
+    
     if (args["outputtype"] == "pdf"):  
         #PDF Format:    
         #Drawing the boxes around the objects in the images + putting text + probabilities. 
@@ -218,8 +286,8 @@ def predict(**args):
         
     else: 
         #JSON format:
-        message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
-        return message
+        #message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
+        return a
 
 def main():
     if args.method == 'get_metadata':

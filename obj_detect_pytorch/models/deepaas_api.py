@@ -13,8 +13,15 @@ import obj_detect_pytorch.models.model_utils as mutils
 import obj_detect_pytorch.models.create_resfiles as resfiles 
 from fpdf import FPDF
 import cv2
-
-
+import ignite
+from torchvision import datasets, transforms, models
+from torch.autograd import Variable
+import json
+import glob
+import csv
+import torch
+import gc
+import numpy as np
 
 
 def get_metadata():
@@ -127,13 +134,44 @@ def predict_file(**args):
     message = 'Not implemented in the model (predict_file)'
     return message
 
+def get_metrics():
+    #Classifier metrics. (Download COCO 2017 dataset for that.) 
+    #Here is the summary of the accuracy for the model trained on the instances set of COCO train2017 and evaluated on COCO   
+    #val2017. Box AP = 37.0
+    """
+    cat_2017 = 'obj_detect_pytorch/obj_detect_pytorch/dataset/stuff_val2017.json'
+    if cat_2017 is not None:
+        with open(cat_2017,'r') as COCO:
+            js = json.loads(COCO.read())
+            val_categories = json.dumps(js) 
+            
+    image_ids = []
+    categ_ids = []
+    #Get categories of the validation images and ids.
+    for i in range(32800):
+        image_ids.append(json.dumps(js['annotations'][i]['image_id']))
+        categ_ids.append(json.dumps(js['annotations'][i]['category_id']))
+    
+    image_unique_id = list(set(image_ids))
+    
+    #Adding ceros to the names:
+    for i in range(5000):
+        miss = 12 - len(str(image_unique_id[i]))
+        image_unique_id[i] = ("0" * miss) + str(str(image_unique_id[i]))
+
+    
+    with open('categories', 'w', newline='') as myfile:
+        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        wr.writerow(index)
+    """
+    return "hi"
+ 
 
 def predict(**args):
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     model.eval()
-
     COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()  #Category names trained.
- 
+    transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
     #Reading the image and saving it.
     outputpath=args['outputpath'] 
     threshold= float(args['threshold'])
@@ -143,7 +181,6 @@ def predict(**args):
     img1.save(other_path)
     
     #Prediction and results.
-    transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
     img1 = transform(img1) 
     pred = model([img1]) 
     pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())] 
@@ -153,7 +190,7 @@ def predict(**args):
     pred_boxes = pred_boxes[:pred_t+1]   #Boxes.
     pred_class = pred_class[:pred_t+1]   #Name of the class.
     pred_score = pred_score[:pred_t+1]   #Prediction probability.
-              
+
     if (args["outputtype"] == "pdf"):  
         #PDF Format:    
         #Drawing the boxes around the objects in the images + putting text + probabilities. 
@@ -177,7 +214,7 @@ def predict(**args):
                            attachment_filename=os.path.basename(result_pdf))
                          
         message = 'Not implemented in the model (predict_file)'
-        return message
+        return message 
         
     else: 
         #JSON format:

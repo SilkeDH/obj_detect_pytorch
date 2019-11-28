@@ -13,5 +13,3 @@ pytest-cov
 
 deepaas
 flaat
-
-#pytorch>=1.3.0

@@ -18,8 +18,11 @@ import cv2
 import ignite
 from torchvision import transforms, utils
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 import torch
-
+import obj_detect_pytorch.models.transform as T
+from obj_detect_pytorch.models.engine import train_one_epoch, evaluate
+import obj_detect_pytorch.dataset.utils as utils2
 
 
 def get_metadata():
@@ -96,10 +99,11 @@ def get_transform(train):
 
 
 def train(**args):
-    num_classes = 2 
-    
+    # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
+    # our dataset has two classes only - background and person
+    num_classes = 2
     # use our dataset and defined transformations
     dataset = mdata.PennFudanDataset('PennFudanPed', get_transform(train=True))
     dataset_test = mdata.PennFudanDataset('PennFudanPed', get_transform(train=False))
@@ -112,12 +116,12 @@ def train(**args):
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=2, shuffle=True, num_workers=4,
-        collate_fn=utils.collate_fn)
+        collate_fn=utils2.collate_fn)
 
     data_loader_test = torch.utils.data.DataLoader(
         dataset_test, batch_size=1, shuffle=False, num_workers=4,
-        collate_fn=utils.collate_fn)
-    
+        collate_fn=utils2.collate_fn)
+
     # get the model using our helper function
     model = get_model_instance_segmentation(num_classes)
 
@@ -144,11 +148,8 @@ def train(**args):
         # evaluate on the test dataset
         evaluate(model, data_loader_test, device=device)
 
-    print("That's it!")
-    
-    
     #Training of the model:
-    run_results = { "status": "Not implemented in the model (train)",
+    run_results = { "status": "YESSSS",
                     "train_args": [],
                     "training": [],
                   }

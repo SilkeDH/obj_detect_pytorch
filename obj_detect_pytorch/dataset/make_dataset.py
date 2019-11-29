@@ -23,8 +23,8 @@ class PennFudanDataset(object):
 
     def __getitem__(self, idx):
         # load images and masks
-        img_path = os.path.join(self.root, "PNGImages", self.imgs[idx])
-        mask_path = os.path.join(self.root, "PedMasks", self.masks[idx])
+        img_path = os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "PNGImages", self.imgs[idx])
+        mask_path = os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "PedMasks", self.masks[idx])
         img = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path)
         mask = np.array(mask)

@@ -22,7 +22,7 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 import torch
 import obj_detect_pytorch.models.transform as T
 from obj_detect_pytorch.models.engine import train_one_epoch, evaluate
-import obj_detect_pytorch.dataset.utils as utils2
+import obj_detect_pytorch.models.utils as utils2
 
 
 def get_metadata():

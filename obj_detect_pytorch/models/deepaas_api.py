@@ -18,6 +18,7 @@ import cv2
 import ignite
 from torchvision import transforms, utils
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+import torch
 
 
 
@@ -87,14 +88,14 @@ def get_model_instance_segmentation(num_classes):
     return model
 
 def get_transform(train):
-    t = []
-    t.append(transforms.ToTensor())
+    transforms = []
+    transforms.append(T.ToTensor())
     if train:
-        t.append(transforms.RandomHorizontalFlip(0.5))
-    return transforms.Compose(t)
+        transforms.append(T.RandomHorizontalFlip(0.5))
+    return T.Compose(transforms)
 
 
-def train(train_args):
+def train(**args):
     num_classes = 2 
     
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -133,7 +134,7 @@ def train(train_args):
                                                    gamma=0.1)
 
     # let's train it for 10 epochs
-    num_epochs = 10
+    num_epochs = 2
 
     for epoch in range(num_epochs):
         # train for one epoch, printing every 10 iterations

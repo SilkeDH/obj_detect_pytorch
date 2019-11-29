@@ -18,8 +18,8 @@ class PennFudanDataset(object):
         self.transforms = transforms
         # load all image files, sorting them to
         # ensure that they are aligned
-        self.imgs = list(sorted(os.listdir(os.path.join(root, "PNGImages"))))
-        self.masks = list(sorted(os.listdir(os.path.join(root, "PedMasks"))))
+        self.imgs = list(sorted(os.listdir(os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "PNGImages"))))
+        self.masks = list(sorted(os.listdir(os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "PedMasks"))))
 
     def __getitem__(self, idx):
         # load images and masks

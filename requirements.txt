@@ -6,3 +6,4 @@ fpdf==1.7.2
 opencv-python>=4.1.1.26
 pytorch-ignite
 pandas
+pycocotools==2.0.0

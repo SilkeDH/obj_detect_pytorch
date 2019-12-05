@@ -149,11 +149,9 @@ def train(**args):
         evaluate(model, data_loader_test, device=device)
 
     #Training of the model:
-    run_results = { "status": "YESSSS",
-                    "train_args": [],
-                    "training": [],
-                  }
-    run_results["train_args"].append(train_args)
+    
+
+    run_results = "Worked. Done :)"
     return run_results
     
 

@@ -23,6 +23,7 @@ import torch
 import obj_detect_pytorch.models.transform as T
 from obj_detect_pytorch.models.engine import train_one_epoch, evaluate
 import obj_detect_pytorch.models.utils as utils2
+import pickle
 
 
 def get_metadata():
@@ -76,7 +77,7 @@ def get_train_args():
         
         "class_names": fields.Str(
             required=True,  
-            description= "Name of the classes in the dataset. Input as a vector."  
+            description= "Names of the classes in the dataset. The names must be separated by a coma, e.g. cat,dog,bird."  
         ),
         
         "num_epochs": fields.Str(
@@ -148,6 +149,16 @@ def train(**args):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
+    #Saving names of the classes
+    class_name = args['class_names']
+    classes = class_name.split(',')
+    nums = [cfg.MODEL_DIR, args['model_name']]
+    cat_file = '{0}/categories_{1}.txt'.format(*nums) 
+    
+    with open(cat_file, 'w') as filehandle:
+        for listitem in classes:
+            filehandle.write('%s\n' % listitem)
+    
     # Number of classes
     num_classes = int(args['num_classes'])
     # use our dataset and defined transformations
@@ -223,34 +234,34 @@ def get_predict_args():
             location="form"),
         
         "outputtype": fields.Str(
-            required=False,  # force the user to define the value
-            missing="json",  # default value to use
-            enum=["json", "pdf"],  # list of choices
-            description="Specifies the output format."  # help string
+            required=False,  
+            missing="json",  
+            enum=["json", "pdf"],  
+            description="Specifies the output format." 
         ),
         
         "threshold": fields.Str(
-            required=False,  # force the user to define the value
-            missing= 0.8,  # default value to use
-            description="Threshold of probability (0.0 - 1.0)."  # help string
+            required=False, 
+            missing= 0.8,  
+            description="Threshold of probability (0.0 - 1.0)."  
         ),
         
         "box_thickness": fields.Str(
-            required=False,  # force the user to define the value
-            missing= 2,  # default value to use
-            description="Thickness of the box in pixels (Positive number starting from 1)."  # help string
+            required=False,
+            missing= 2, 
+            description="Thickness of the box in pixels (Positive number starting from 1)."  
         ),
         
         "text_size": fields.Str(
-            required=False,  # force the user to define the value
-            missing= 1 ,  # default value to use
-            description="Size of the text in pixels (Positive number starting from 1)."  # help string
+            required=False,  
+            missing= 1 , 
+            description="Size of the text in pixels (Positive number starting from 1)."  
         ),
         
         "text_thickness": fields.Str(
-            required=False,  # force the user to define the value
-            missing= 2,  # default value to use
-            description="Thickness of the text in pixels (Positive number starting from 1)."  # help string
+            required=False,  
+            missing= 2,  
+            description="Thickness of the text in pixels (Positive number starting from 1)."  
         ),
      }
 
@@ -269,10 +280,20 @@ def predict(**args):
         #For a trained NN: We can still use the COCO category names since name[background] = 0 and name[person] = 1. 
         #To get the masks just add pred_mask in the prediction and results section.
         nums = [cfg.MODEL_DIR, args['model_name']]
-        model_path = '{0}/{1}.pt'.format(*nums)e
+        model_path = '{0}/{1}.pt'.format(*nums)
         state_dict = torch.load(model_path)
         model = get_model_instance_segmentation(list(state_dict["roi_heads.mask_predictor.mask_fcn_logits.bias"].size())[0])
         model.load_state_dict(state_dict)
+        CATEGORIES = []
+        # open file and read the content in a list
+        nums = [cfg.MODEL_DIR, args['model_name']]
+        cat_file = '{0}/categories_{1}.txt'.format(*nums)
+        with open(cat_file, 'r') as filehandle:
+            for line in filehandle:
+                currentPlace = line[:-1]
+                CATEGORIES.append(currentPlace)
+        print(CATEGORIES)
+           
 
     model.eval()
     
@@ -297,6 +318,7 @@ def predict(**args):
     pred_score = pred_score[:pred_t+1]   #Prediction probability.
     
     #a = mmetrics.get_metrics() #Predict images of the classifier and get the metrics.
+   
     
     if (args["outputtype"] == "pdf"):  
         #PDF Format:    

@@ -26,6 +26,26 @@ def format_prediction(boxes, labels, probabilities):
                          
     return d
 
+def format_train(network, accuracy, nepochs, data_size, 
+                 time_prepare, mn_train, std_train):
+
+
+    train_info = {
+        "network": network,
+        "test accuracy": accuracy,
+        "n epochs": nepochs,
+        "train set (images)": data_size,
+        "validation set (images)": data_size,
+        "test set (images)": data_size,
+        "time": {
+                "time to prepare": time_prepare,
+                "mean per epoch (s)": mn_train,
+                "std (s)": std_train,
+                },
+    }
+
+    return train_info
+
 def category_names():
     
     COCO_INSTANCE_CATEGORY_NAMES = [

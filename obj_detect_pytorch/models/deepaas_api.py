@@ -63,11 +63,41 @@ def warm():
 def get_train_args():
     #Training arguments:
     return {
-        "arg1": fields.Str(
+        "num_epochs": fields.Str(
             required=False,  # force the user to define the value
-            missing="foo",  # default value to use
-            enum=["choice1", "choice2"],  # list of choices
-            description="Argument one"  # help string
+            missing= 10,  # default value to use
+            #enum=["choice1", "choice2"],  # list of choices
+            description= "Number of training epochs for the SGD."  # help string
+        ),
+        
+        "learning_rate": fields.Str(
+            required=False, 
+            missing= 0.005, 
+            description= "Learning rate."  
+        ),
+        
+        "momentum": fields.Str(
+            required=False,  
+            missing= 0.9, 
+            description= "Momentum factor. Default: 0. More information: https://pytorch.org/docs/stable/optim.html"  
+        ),
+        
+        "weight_decay": fields.Str(
+            required=False,  
+            missing= 0.0005,  
+            description= "Weight decay (L2 penalty). Default: 0." 
+        ),
+        
+        "step_size": fields.Str(
+            required=False,  
+            missing= 3,  
+            description= "Period of learning rate decay, must be an integer." 
+        ),
+        
+        "gamma": fields.Str(
+            required=False,  
+            missing= 0.1,  
+            description= "Multiplicative factor of learning rate decay. Default: 0.1." 
         ),
     }
 
@@ -150,8 +180,12 @@ def train(**args):
 
     #Training of the model:
     
-
+    #train_results = mutils.format_train(network, test_accuracy, num_epochs,
+    #                                    data_size, time_prepare, mn, std)
     run_results = "Worked. Done :)"
+    train_results = mutils.format_train(run_results, run_results, run_results,
+                                        run_results, run_results,run_results, run_results)
+    
     return run_results
     
 

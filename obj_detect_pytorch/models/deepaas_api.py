@@ -63,11 +63,26 @@ def warm():
 def get_train_args():
     #Training arguments:
     return {
+        "model_name": fields.Str(
+            required=True,  # force the user to define the value
+            description= "Name of the model without blank spaces. If another model with the same name exists it will be overwritten."  # help string
+        ),
+        
+        "num_classes": fields.Str(
+            required = True,  
+            
+            description= "Number of classes in the dataset. Integer."
+        ),
+        
+        "class_names": fields.Str(
+            required=True,  
+            description= "Name of the classes in the dataset. Input as a vector."  
+        ),
+        
         "num_epochs": fields.Str(
-            required=False,  # force the user to define the value
-            missing= 1,  # default value to use
-            #enum=["choice1", "choice2"],  # list of choices
-            description= "Number of training epochs for the SGD."  # help string
+            required=False,
+            missing= 1,
+            description= "Number of training epochs for the SGD." 
         ),
         
         "learning_rate": fields.Str(
@@ -120,6 +135,7 @@ def get_model_instance_segmentation(num_classes):
 
     return model
 
+
 def get_transform(train):
     transforms = []
     transforms.append(T.ToTensor())
@@ -132,8 +148,8 @@ def train(**args):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    # our dataset has two classes only - background and person
-    num_classes = 2
+    # Number of classes
+    num_classes = int(args['num_classes'])
     # use our dataset and defined transformations
     dataset = mdata.PennFudanDataset('PennFudanPed', get_transform(train=True))
     dataset_test = mdata.PennFudanDataset('PennFudanPed', get_transform(train=False))
@@ -178,36 +194,33 @@ def train(**args):
         # evaluate on the test dataset
         evaluate(model, data_loader_test, device=device)
 
-    #Training of the model:
-    
     #train_results = mutils.format_train(network, test_accuracy, num_epochs,
     #                                    data_size, time_prepare, mn, std)
     
-    run_results = "Worked. Done :)"
-    train_results = mutils.format_train(run_results, run_results, run_results,
-                                        run_results, run_results,run_results, run_results)
-    
-    model_path = '{}/model.pth'.format(cfg.MODEL_DIR)
+    print("Training done.")
+    run_results = "Done."
+    nums = [cfg.MODEL_DIR, args['model_name']]
+    model_path = '{0}/{1}.pt'.format(*nums)
     torch.save(model.state_dict(), model_path)
-    torch.save(optimizer.state_dict(), model_path)
+    print("Model saved.")
     
-    return train_results
+    return run_results
     
 
 def get_predict_args():
     #Prediction arguments:
     return {
+        "model_name": fields.Str(
+            required=False,  # force the user to define the value
+            missing="COCO",  # default value to use
+            description= "Name of the model for predicting."  # help string
+        ),
+
         "files": fields.Field(
             description="Data file to perform inference on.",
             required=True,
             type="file",
             location="form"),
-        
-        "outputpath": fields.Str(
-            required=False,  # force the user to define the value
-            missing="/temp",  # default value to use
-            description="Specifies in which path the image should be stored."  # help string
-        ),
         
         "outputtype": fields.Str(
             required=False,  # force the user to define the value
@@ -250,21 +263,22 @@ def predict_file(**args):
  
 def predict(**args):
     #Download weight files and model.
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-    
-    #For a trained NN: We can still use the COCO category names since name[background] = 0 and name[person] = 1. 
-    #To get the masks just add pred_mask in the prediction and results section.
-    model = get_model_instance_segmentation(2) 
-    model_path = '{}/model.pt'.format(cfg.MODEL_DIR)
-    state_dict = torch.load(model_path)
-    model.load_state_dict(state_dict)
-    
+    if (args['model_name'] == "COCO"):
+        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    else:
+        #For a trained NN: We can still use the COCO category names since name[background] = 0 and name[person] = 1. 
+        #To get the masks just add pred_mask in the prediction and results section.
+        nums = [cfg.MODEL_DIR, args['model_name']]
+        model_path = '{0}/{1}.pt'.format(*nums)e
+        state_dict = torch.load(model_path)
+        model = get_model_instance_segmentation(list(state_dict["roi_heads.mask_predictor.mask_fcn_logits.bias"].size())[0])
+        model.load_state_dict(state_dict)
+
     model.eval()
     
     COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()  #Category names trained.
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
     #Reading the image and saving it.
-    outputpath=args['outputpath'] 
     threshold= float(args['threshold'])
     thefile= args['files']
     img1 = Image.open(thefile.filename)  

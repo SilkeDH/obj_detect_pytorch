@@ -8,7 +8,10 @@ from os import path
 # identify basedir for the package
 BASE_DIR = path.dirname(path.normpath(path.dirname(__file__)))
 
-DATA_DIR = path.join(BASE_DIR,'data') # Location of model data and output files
+DATA_DIR = path.join(BASE_DIR,'data') # Location of data and output files
+
+MODEL_DIR = path.join(BASE_DIR,'models') # Location of model data and output files
+
 
 train_args = { 'arg1': {'default': 1,
                         'help': '',

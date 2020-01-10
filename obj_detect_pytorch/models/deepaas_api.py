@@ -65,7 +65,7 @@ def get_train_args():
     return {
         "num_epochs": fields.Str(
             required=False,  # force the user to define the value
-            missing= 10,  # default value to use
+            missing= 1,  # default value to use
             #enum=["choice1", "choice2"],  # list of choices
             description= "Number of training epochs for the SGD."  # help string
         ),
@@ -160,15 +160,15 @@ def train(**args):
 
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005,
-                                momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params, lr=float(args['learning_rate']) ,
+                                momentum= float(args['momentum']), weight_decay= float(args['weight_decay']))
     # and a learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                   step_size=3,
-                                                   gamma=0.1)
+                                                   step_size= int(args['step_size']),
+                                                   gamma= float(args['gamma']))
 
     # let's train it for 10 epochs
-    num_epochs = 2
+    num_epochs = int(args['num_epochs'])
 
     for epoch in range(num_epochs):
         # train for one epoch, printing every 10 iterations
@@ -182,11 +182,16 @@ def train(**args):
     
     #train_results = mutils.format_train(network, test_accuracy, num_epochs,
     #                                    data_size, time_prepare, mn, std)
+    
     run_results = "Worked. Done :)"
     train_results = mutils.format_train(run_results, run_results, run_results,
                                         run_results, run_results,run_results, run_results)
     
-    return run_results
+    model_path = '{}/model.pth'.format(cfg.MODEL_DIR)
+    torch.save(model.state_dict(), model_path)
+    torch.save(optimizer.state_dict(), model_path)
+    
+    return train_results
     
 
 def get_predict_args():
@@ -244,7 +249,16 @@ def predict_file(**args):
     return message
  
 def predict(**args):
+    #Download weight files and model.
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    
+    #For a trained NN: We can still use the COCO category names since name[background] = 0 and name[person] = 1. 
+    #To get the masks just add pred_mask in the prediction and results section.
+    model = get_model_instance_segmentation(2) 
+    model_path = '{}/model.pt'.format(cfg.MODEL_DIR)
+    state_dict = torch.load(model_path)
+    model.load_state_dict(state_dict)
+    
     model.eval()
     
     COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()  #Category names trained.

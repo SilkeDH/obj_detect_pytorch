@@ -6,6 +6,8 @@
 #
 
 import requests
+from os import listdir
+import obj_detect_pytorch.config as cfg
 
 def format_prediction(boxes, labels, probabilities):
     d = {
@@ -45,6 +47,13 @@ def format_train(network, accuracy, nepochs, data_size,
     }
 
     return train_info
+
+def get_models():
+    models = []
+    for f in listdir(cfg.MODEL_DIR): 
+        if f.endswith(".pt"):
+            models.append(f[:-3])
+    return models
 
 def category_names():
     

@@ -28,10 +28,13 @@ import pickle
 
 def get_metadata():
     #Metadata of the model:
+    #Gets the models trained with the NN.
+    models_names = mutils.get_models()
     module = __name__.split('.', 1)
     pkg = pkg_resources.get_distribution(module[0])  
     meta = {
         'Name': None,
+        'Models': str(models_names),
         'Version': None,
         'Summary': None,
         'Home-page': None,
@@ -147,19 +150,20 @@ def get_transform(train):
 
 def train(**args):
     # train on the GPU or on the CPU, if a GPU is not available
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda')
 
-    #Saving names of the classes
+    #saving names of the classes
     class_name = args['class_names']
     classes = class_name.split(',')
     nums = [cfg.MODEL_DIR, args['model_name']]
     cat_file = '{0}/categories_{1}.txt'.format(*nums) 
     
+    #writing file with the classes
     with open(cat_file, 'w') as filehandle:
         for listitem in classes:
             filehandle.write('%s\n' % listitem)
     
-    # Number of classes
+    # number of classes
     num_classes = int(args['num_classes'])
     # use our dataset and defined transformations
     dataset = mdata.PennFudanDataset('PennFudanPed', get_transform(train=True))
@@ -172,11 +176,11 @@ def train(**args):
 
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=2, shuffle=True, num_workers=4,
+        dataset, batch_size=2, shuffle=True, num_workers=8,
         collate_fn=utils2.collate_fn)
 
     data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, batch_size=1, shuffle=False, num_workers=4,
+        dataset_test, batch_size=1, shuffle=False, num_workers=8,
         collate_fn=utils2.collate_fn)
 
     # get the model using our helper function
@@ -194,7 +198,7 @@ def train(**args):
                                                    step_size= int(args['step_size']),
                                                    gamma= float(args['gamma']))
 
-    # let's train it for 10 epochs
+    # let's train it for num_epochs
     num_epochs = int(args['num_epochs'])
 
     for epoch in range(num_epochs):
@@ -203,15 +207,17 @@ def train(**args):
         # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset
+        print('Evaluating model...')
         evaluate(model, data_loader_test, device=device)
 
     #train_results = mutils.format_train(network, test_accuracy, num_epochs,
     #                                    data_size, time_prepare, mn, std)
-    
+    #print("Finished")
     print("Training done.")
     run_results = "Done."
     nums = [cfg.MODEL_DIR, args['model_name']]
     model_path = '{0}/{1}.pt'.format(*nums)
+    #saving model's parameters
     torch.save(model.state_dict(), model_path)
     print("Model saved.")
     
@@ -276,8 +282,8 @@ def predict(**args):
     #Download weight files and model.
     if (args['model_name'] == "COCO"):
         model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+        CATEGORIES = mutils.category_names()
     else:
-        #For a trained NN: We can still use the COCO category names since name[background] = 0 and name[person] = 1. 
         #To get the masks just add pred_mask in the prediction and results section.
         nums = [cfg.MODEL_DIR, args['model_name']]
         model_path = '{0}/{1}.pt'.format(*nums)
@@ -292,24 +298,21 @@ def predict(**args):
             for line in filehandle:
                 currentPlace = line[:-1]
                 CATEGORIES.append(currentPlace)
-        print(CATEGORIES)
            
-
     model.eval()
     
-    COCO_INSTANCE_CATEGORY_NAMES = mutils.category_names()  #Category names trained.
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
-    #Reading the image and saving it.
+    #reading the image and saving it.
     threshold= float(args['threshold'])
     thefile= args['files']
     img1 = Image.open(thefile.filename)  
     other_path = '{}/Input_image_patch.png'.format(cfg.DATA_DIR)
     img1.save(other_path)
     
-    #Prediction and results.
+    #prediction and results.
     img1 = transform(img1) 
     pred = model([img1]) 
-    pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())] 
+    pred_class = [CATEGORIES[i] for i in list(pred[0]['labels'].numpy())] 
     pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] 
     pred_score = list(pred[0]['scores'].detach().numpy())
     pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1] 
@@ -319,7 +322,6 @@ def predict(**args):
     
     #a = mmetrics.get_metrics() #Predict images of the classifier and get the metrics.
    
-    
     if (args["outputtype"] == "pdf"):  
         #PDF Format:    
         #Drawing the boxes around the objects in the images + putting text + probabilities. 

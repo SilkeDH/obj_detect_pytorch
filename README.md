@@ -19,10 +19,10 @@ For training, transferred learning is used. Transferred learning focuses on stor
 The model requires a new dataset with the classes that are going to be classified and detected. In this case the [Penn-Fudan Database for Pedestrian Detection and Segmentation](https://www.cis.upenn.edu/~jshi/ped_html/) was used to detect pedestrians. 
 
 <p align="center">
-<img src="./reports/figures/pytorchobj.png" alt="spectrogram" width="400">
+<img src="./reports/figures/pytorchobj.png" alt="spectrogram" width="200">
 </p>
 
-To try this in the module, the two dataset folders (Images and masks) must be placed in the `obj_detect_pytorch/dataset/` folder in order to work. More information about the code and the structuring of the custom dataset can be found at [Torchvision object detection finetuning](https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html).
+To try this in the module, the two dataset folders (Images and masks) must be placed in the `obj_detect_pytorch/dataset/` folder in order to work. More information about the code and the structuring of the custom dataset can be found at [Torchvision Object Detection Finetuning](https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html).
 
 
 

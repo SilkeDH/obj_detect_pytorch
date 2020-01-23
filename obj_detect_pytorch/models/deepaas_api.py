@@ -74,13 +74,12 @@ def get_train_args():
         
         "num_classes": fields.Str(
             required = True,  
-            
-            description= "Number of classes in the dataset. Integer."
+            description= "Number of classes in the dataset. Note: It must be #classes + 1 since background is needed. Integer."
         ),
         
         "class_names": fields.Str(
             required=True,  
-            description= "Names of the classes in the dataset. The names must be separated by a coma, e.g. cat,dog,bird."  
+            description= "Names of the classes in the dataset. A background class must exist. The names must be separated by a coma, e.g. background,class1,class2."  
         ),
         
         "num_epochs": fields.Str(
@@ -212,7 +211,7 @@ def train(**args):
 
     #train_results = mutils.format_train(network, test_accuracy, num_epochs,
     #                                    data_size, time_prepare, mn, std)
-    #print("Finished")
+ 
     print("Training done.")
     run_results = "Done."
     nums = [cfg.MODEL_DIR, args['model_name']]
@@ -230,7 +229,7 @@ def get_predict_args():
         "model_name": fields.Str(
             required=False,  # force the user to define the value
             missing="COCO",  # default value to use
-            description= "Name of the model for predicting."  # help string
+            description= "Name of the model. To see the available models please run the get_metadata function."  # help string
         ),
 
         "files": fields.Field(
@@ -239,17 +238,17 @@ def get_predict_args():
             type="file",
             location="form"),
         
-        "outputtype": fields.Str(
-            required=False,  
-            missing="json",  
-            enum=["json", "pdf"],  
-            description="Specifies the output format." 
-        ),
+        #"outputtype": fields.Str(
+        #    required=False,  
+        #    missing="json",  
+        #    enum=["json", "pdf"],  
+        #    description="Specifies the output format." 
+        #),
         
         "threshold": fields.Str(
             required=False, 
             missing= 0.8,  
-            description="Threshold of probability (0.0 - 1.0)."  
+            description="Threshold of probability (0.0 - 1.0). Shows the predictions above the threshold."  
         ),
         
         "box_thickness": fields.Str(
@@ -322,15 +321,16 @@ def predict(**args):
     
     #a = mmetrics.get_metrics() #Predict images of the classifier and get the metrics.
    
-    if (args["outputtype"] == "pdf"):  
+    #if (args["outputtype"] == "pdf"):  
+    if (True):
         #PDF Format:    
         #Drawing the boxes around the objects in the images + putting text + probabilities. 
-        img_cv = cv2.imread(thepath) # Read image with cv2
+        img_cv = cv2.imread(other_path) # Read image with cv2
         for i in range(len(pred_boxes)):
-            cv2.rectangle(img_cv, pred_boxes[i][0], pred_boxes[i][1], color= (0,255,255) , 
+            cv2.rectangle(img_cv, pred_boxes[i][0], pred_boxes[i][1], color= (255,0,0) , 
                           thickness= int(args['box_thickness']))  # Draws rectangle.
             cv2.putText(img_cv,str(pred_class[i]) + " " + str(float("{0:.4f}".format(pred_score[i]))), pred_boxes[i][0],
-                    cv2.FONT_HERSHEY_SIMPLEX, int(args['text_size']), (0,255,255),thickness= int(args['text_thickness'])) 
+                    cv2.FONT_HERSHEY_SIMPLEX, int(args['text_size']), (255,0,0),thickness= int(args['text_thickness'])) 
         class_path = '{}/Classification_map.png'.format(cfg.DATA_DIR)
         cv2.imwrite(class_path,img_cv)    
     
@@ -340,14 +340,14 @@ def predict(**args):
         #Create the PDF file.
         result_pdf = resfiles.create_pdf(result_image, pred_boxes, pred_class, pred_score)
 
-        return flask.send_file(filename_or_fp=result_pdf,
-                           as_attachment=True,
-                           attachment_filename=os.path.basename(result_pdf))
+        #return flask.send_file(filename_or_fp=result_pdf,
+        #                   as_attachment=True,
+        #                   attachment_filename=os.path.basename(result_pdf))
                          
-        message = 'Not implemented in the model (predict_file)'
-        return message 
+        #message = 'Not implemented in the model (predict_file)'
+        #return message 
         
-    else: 
+    #else: 
         #JSON format:
         message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
         return message

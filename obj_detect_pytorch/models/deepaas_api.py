@@ -327,10 +327,10 @@ def predict(**args):
         #Drawing the boxes around the objects in the images + putting text + probabilities. 
         img_cv = cv2.imread(other_path) # Read image with cv2
         for i in range(len(pred_boxes)):
-            cv2.rectangle(img_cv, pred_boxes[i][0], pred_boxes[i][1], color= (255,0,0) , 
+            cv2.rectangle(img_cv, pred_boxes[i][0], pred_boxes[i][1], color= (124,252,0) , 
                           thickness= int(args['box_thickness']))  # Draws rectangle.
             cv2.putText(img_cv,str(pred_class[i]) + " " + str(float("{0:.4f}".format(pred_score[i]))), pred_boxes[i][0],
-                    cv2.FONT_HERSHEY_SIMPLEX, int(args['text_size']), (255,0,0),thickness= int(args['text_thickness'])) 
+                    cv2.FONT_HERSHEY_SIMPLEX, int(args['text_size']), (124,252,0),thickness= int(args['text_thickness'])) 
         class_path = '{}/Classification_map.png'.format(cfg.DATA_DIR)
         cv2.imwrite(class_path,img_cv)    
     

@@ -11,7 +11,7 @@ This is a plug-and-play tool for object detection and classification using deep 
 This module works on uploaded pictures and gives as ouput the rectangle coordinates x1,y1 and x2,y2 were the classificated object is located with its respective probability.
 
 <p align="center">
-<img src="./reports/figures/dog_broccoli.png" alt="spectrogram" width="400">
+<img src="./reports/figures/dog_broccoli.png" alt="spectrogram" width="250" height="600">
 </p>
 
 For training, transferred learning is used. Transferred learning focuses on storing knowledge gained while solving one problem and applying it to a different but related problem. To achieve it, the output layer of the pre-trained model is removed and a new one with the new number of outputs is added. Only that new layer will be trained. An example of it is provided an implemented in this module.
@@ -19,7 +19,7 @@ For training, transferred learning is used. Transferred learning focuses on stor
 The model requires a new dataset with the classes that are going to be classified and detected. In this case the [Penn-Fudan Database for Pedestrian Detection and Segmentation](https://www.cis.upenn.edu/~jshi/ped_html/) was used to detect pedestrians. 
 
 <p align="center">
-<img src="./reports/figures/pytorchobj.png" alt="spectrogram" width="200">
+<img src="./reports/figures/pytorchobj.png" alt="spectrogram" width="500">
 </p>
 
 To try this in the module, the two dataset folders (Images and masks) must be placed in the `obj_detect_pytorch/dataset/` folder in order to work. More information about the code and the structuring of the custom dataset can be found at [Torchvision Object Detection Finetuning](https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html).

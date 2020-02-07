@@ -147,6 +147,7 @@ def get_transform(train):
     return T.Compose(transforms)
 
 
+
 def train(**args):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda')
@@ -154,12 +155,14 @@ def train(**args):
     #saving names of the classes
     class_name = args['class_names']
     classes = class_name.split(',')
+    
     nums = [cfg.MODEL_DIR, args['model_name']]
     cat_file = '{0}/categories_{1}.txt'.format(*nums) 
     
     #writing file with the classes
     with open(cat_file, 'w') as filehandle:
         for listitem in classes:
+            listitem = listitem.lstrip()
             filehandle.write('%s\n' % listitem)
     
     # number of classes

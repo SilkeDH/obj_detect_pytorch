@@ -2,6 +2,7 @@
 import unittest
 import obj_detect_pytorch.models.deepaas_api as deepaas_api
 
+
 class TestModelMethods(unittest.TestCase):
     
     def setUp(self):
@@ -21,7 +22,9 @@ class TestModelMethods(unittest.TestCase):
                         'obj_detect_pytorch'.replace('-','').replace('_',''))
         self.assertEqual(self.meta['Author'], 'Silke Donayre')
         self.assertEqual(self.meta['Author-email'], 'silke.holtz@student.kit.edu')
-
-
+        
+    #def test_model_variables(self):# For training.
+     
+   
 if __name__ == '__main__':
     unittest.main()

@@ -6,6 +6,8 @@
 #
 
 import requests
+from os import listdir
+import obj_detect_pytorch.config as cfg
 
 def format_prediction(boxes, labels, probabilities):
     d = {
@@ -25,6 +27,33 @@ def format_prediction(boxes, labels, probabilities):
         d["predictions"].append(pred)
                          
     return d
+
+def format_train(network, accuracy, nepochs, data_size, 
+                 time_prepare, mn_train, std_train):
+
+
+    train_info = {
+        "network": network,
+        "test accuracy": accuracy,
+        "n epochs": nepochs,
+        "train set (images)": data_size,
+        "validation set (images)": data_size,
+        "test set (images)": data_size,
+        "time": {
+                "time to prepare": time_prepare,
+                "mean per epoch (s)": mn_train,
+                "std (s)": std_train,
+                },
+    }
+
+    return train_info
+
+def get_models():
+    models = []
+    for f in listdir(cfg.MODEL_DIR): 
+        if f.endswith(".pt"):
+            models.append(f[:-3])
+    return models
 
 def category_names():
     

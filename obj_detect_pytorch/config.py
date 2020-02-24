@@ -8,10 +8,20 @@ from os import path
 # identify basedir for the package
 BASE_DIR = path.dirname(path.normpath(path.dirname(__file__)))
 
-DATA_DIR = path.join(BASE_DIR,'data') # Location of data and output files
+DATA_DIR = path.join(BASE_DIR,'data') # Location of output files
 
-MODEL_DIR = path.join(BASE_DIR,'models') # Location of model data and output files
+DATASET_DIR = path.join(BASE_DIR,'obj_detect_pytorch/dataset/') # Location of the dataset
 
+MODEL_DIR = path.join(BASE_DIR,'models') # Location of model data
+
+Obj_det_RemoteSpace = 'rshare:/Datasets/obj_detec_pytorch/'
+obj_det_ImageDataDir = 'data/Images/'
+obj_det_MaskDataDir = 'data/Masks/'
+
+REMOTE_IMG_DATA_DIR = path.join(Obj_det_RemoteSpace, obj_det_ImageDataDir)
+REMOTE_MASK_DATA_DIR = path.join(Obj_det_RemoteSpace, obj_det_MaskDataDir)
+
+REMOTE_MODELS_DIR = path.join(Obj_det_RemoteSpace, 'models/')
 
 train_args = { 'arg1': {'default': 1,
                         'help': '',

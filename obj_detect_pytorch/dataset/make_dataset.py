@@ -14,22 +14,24 @@ from PIL import Image
 import subprocess
 
 #Loads Dataset from  Nextcloud.
-def load_dataset():
+def download_dataset():
     try:
-        images_path = os.path.join(cfg.DATA_DIR, "Images") 
-        masks_path = os.path.join(cfg.DATA_DIR, "Masks")
+        images_path = os.path.join(cfg.DATASET_DIR, "Images") 
+        masks_path = os.path.join(cfg.DATASET_DIR, "Masks")
         
         if not os.path.exists(images_path) and not os.path.exists(masks_path) :
-        
+            print('No data found, downloading data...')
             # from "rshare" remote storage into the container
-            command = (['rclone', 'copy', '--progress', 'rshare:/Datasets/obj_detec_pytorch/data/Images/', '/srv/obj_detect_pytorch/obj_detect_pytorch/dataset/Images'])
+            command = (['rclone', 'copy', '--progress', cfg.REMOTE_IMG_DATA_DIR, images_path])
             result = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = result.communicate()
-            command = (['rclone', 'copy', '--progress', 'rshare:/Datasets/obj_detec_pytorch/data/Masks/', '/srv/obj_detect_pytorch/obj_detect_pytorch/dataset/Masks'])
+            command = (['rclone', 'copy', '--progress', cfg.REMOTE_MASK_DATA_DIR , masks_path])
             result = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = result.communicate()
+            print('Finished.')
         else:
-            print("Images and masks folder already exists.")
+            print("Images and masks folders already exists.")
+            
     except OSError as e:
         output, error = None, e
     

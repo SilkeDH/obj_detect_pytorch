@@ -146,10 +146,8 @@ def get_transform(train):
     return T.Compose(transforms)
 
 def train(**args):
-    print("starting...")
-    mdata.load_dataset()
-    print("finishing...")
-    
+    #download dataset if it doens't exist.
+    mdata.download_dataset()
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device:', device)
@@ -187,22 +185,23 @@ def train(**args):
         dataset_test, batch_size=1, shuffle=False, num_workers=8,
         collate_fn=utils2.collate_fn)
 
-    # get the model using our helper function
+    #get the model using our helper function
     model = get_model_instance_segmentation(num_classes)
 
-    # move model to the right device
+    #move model to the right device
     model.to(device)
 
-    # construct an optimizer
+    #construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=float(args['learning_rate']) ,
                                 momentum= float(args['momentum']), weight_decay= float(args['weight_decay']))
-    # and a learning rate scheduler
+    
+    #and a learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                    step_size= int(args['step_size']),
                                                    gamma= float(args['gamma']))
 
-    # let's train it for num_epochs
+    #let's train it for num_epochs
     num_epochs = int(args['num_epochs'])
 
     for epoch in range(num_epochs):
@@ -221,12 +220,23 @@ def train(**args):
     run_results = "Done."
     nums = [cfg.MODEL_DIR, args['model_name']]
     model_path = '{0}/{1}.pt'.format(*nums)
+   
     #saving model's parameters
     torch.save(model.state_dict(), model_path)
     print("Model saved.")
+    torch.cuda.empty_cache()
+    
+    #copy model weigths, classes to nextcloud.
+    dest_dir = cfg.REMOTE_MODELS_DIR
+    print("[INFO] Upload %s to %s" % (model_path, dest_dir))
+    
+    #uploading class names.
+    mutils.upload_model(cat_file)
+    
+    #uploading weights.
+    mutils.upload_model(model_path)
     
     return run_results
-    
 
 def get_predict_args():
     #Prediction arguments:
@@ -274,9 +284,6 @@ def get_predict_args():
             description="Thickness of the text in pixels (Positive number starting from 1)."  
         ),
      }
-
-# during development it might be practical 
-# to check your code from the command line
     
 def predict_file(**args):
     message = 'Not implemented in the model (predict_file)'
@@ -288,6 +295,7 @@ def predict(**args):
         model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
         CATEGORIES = mutils.category_names()
     else:
+        mutils.download_model(args['model_name'])
         #To get the masks just add pred_mask in the prediction and results section.
         nums = [cfg.MODEL_DIR, args['model_name']]
         model_path = '{0}/{1}.pt'.format(*nums)
@@ -306,6 +314,7 @@ def predict(**args):
     model.eval()
     
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
+    
     #reading the image and saving it.
     threshold= float(args['threshold'])
     thefile= args['files']
@@ -319,15 +328,21 @@ def predict(**args):
     pred_class = [CATEGORIES[i] for i in list(pred[0]['labels'].numpy())] 
     pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] 
     pred_score = list(pred[0]['scores'].detach().numpy())
-    pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1] 
-    pred_boxes = pred_boxes[:pred_t+1]   #Boxes.
-    pred_class = pred_class[:pred_t+1]   #Name of the class.
-    pred_score = pred_score[:pred_t+1]   #Prediction probability.
+    try:
+        pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1]
+        pred_boxes = pred_boxes[:pred_t+1]   #Boxes.
+        pred_class = pred_class[:pred_t+1]   #Name of the class.
+        pred_score = pred_score[:pred_t+1]   #Prediction probability.
+    except IndexError:
+        pred_t = 'null'
+        pred_boxes = 'null'
+        pred_class = 'null'
+        pred_score = 'null'
     
     #a = mmetrics.get_metrics() #Predict images of the classifier and get the metrics.
    
     #if (args["outputtype"] == "pdf"):  
-    if (True):
+    if (pred_t!='null'):
         #PDF Format:    
         #Drawing the boxes around the objects in the images + putting text + probabilities. 
         img_cv = cv2.imread(other_path) # Read image with cv2
@@ -354,8 +369,11 @@ def predict(**args):
         
     #else: 
         #JSON format:
-        message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
-        return message
+        #message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
+        #return message
+        
+    message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
+    return message
 
 def main():
     if args.method == 'get_metadata':

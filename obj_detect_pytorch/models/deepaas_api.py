@@ -15,7 +15,6 @@ import obj_detect_pytorch.models.create_resfiles as resfiles
 import obj_detect_pytorch.dataset.make_dataset as mdata
 from fpdf import FPDF
 import cv2
-import ignite
 from torchvision import transforms, utils
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
@@ -146,11 +145,14 @@ def get_transform(train):
         transforms.append(T.RandomHorizontalFlip(0.5))
     return T.Compose(transforms)
 
-
-
 def train(**args):
+    print("starting...")
+    mdata.load_dataset()
+    print("finishing...")
+    
     # train on the GPU or on the CPU, if a GPU is not available
-    device = torch.device('cuda')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)
 
     #saving names of the classes
     class_name = args['class_names']
@@ -168,8 +170,8 @@ def train(**args):
     # number of classes
     num_classes = int(args['num_classes'])
     # use our dataset and defined transformations
-    dataset = mdata.PennFudanDataset('PennFudanPed', get_transform(train=True))
-    dataset_test = mdata.PennFudanDataset('PennFudanPed', get_transform(train=False))
+    dataset = mdata.Dataset('Dataset', get_transform(train=True))
+    dataset_test = mdata.Dataset('Dataset', get_transform(train=False))
 
     # split the dataset in train and test set
     indices = torch.randperm(len(dataset)).tolist()

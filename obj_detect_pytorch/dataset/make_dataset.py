@@ -11,20 +11,42 @@ import os
 import numpy as np
 import torch
 from PIL import Image
+import subprocess
 
-class PennFudanDataset(object):
+#Loads Dataset from  Nextcloud.
+def load_dataset():
+    try:
+        images_path = os.path.join(cfg.DATA_DIR, "Images") 
+        masks_path = os.path.join(cfg.DATA_DIR, "Masks")
+        
+        if not os.path.exists(images_path) and not os.path.exists(masks_path) :
+        
+            # from "rshare" remote storage into the container
+            command = (['rclone', 'copy', '--progress', 'rshare:/Datasets/obj_detec_pytorch/data/Images/', '/srv/obj_detect_pytorch/obj_detect_pytorch/dataset/Images'])
+            result = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output, error = result.communicate()
+            command = (['rclone', 'copy', '--progress', 'rshare:/Datasets/obj_detec_pytorch/data/Masks/', '/srv/obj_detect_pytorch/obj_detect_pytorch/dataset/Masks'])
+            result = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output, error = result.communicate()
+        else:
+            print("Images and masks folder already exists.")
+    except OSError as e:
+        output, error = None, e
+    
+#Creates a class of the dataset.
+class Dataset(object):
     def __init__(self, root, transforms):
         self.root = root
         self.transforms = transforms
         # load all image files, sorting them to
         # ensure that they are aligned
-        self.imgs = list(sorted(os.listdir(os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "PNGImages"))))
-        self.masks = list(sorted(os.listdir(os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "PedMasks"))))
+        self.imgs = list(sorted(os.listdir(os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "Images"))))
+        self.masks = list(sorted(os.listdir(os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "Masks"))))
 
     def __getitem__(self, idx):
         # load images and masks
-        img_path = os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "PNGImages", self.imgs[idx])
-        mask_path = os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "PedMasks", self.masks[idx])
+        img_path = os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "Images", self.imgs[idx])
+        mask_path = os.path.join("obj_detect_pytorch/obj_detect_pytorch/dataset/", "Masks", self.masks[idx])
         img = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path)
         mask = np.array(mask)

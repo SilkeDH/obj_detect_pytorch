@@ -30,7 +30,7 @@ def download_dataset():
             output, error = result.communicate()
             print('Finished.')
         else:
-            print("Images and masks folders already exists.")
+            print("Images and masks folders already exist.")
             
     except OSError as e:
         output, error = None, e

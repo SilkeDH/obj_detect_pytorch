@@ -10,7 +10,6 @@ import obj_detect_pytorch.config as cfg
 import torchvision
 from PIL import Image
 import obj_detect_pytorch.models.model_utils as mutils
-import obj_detect_pytorch.models.model_metrics as mmetrics
 import obj_detect_pytorch.models.create_resfiles as resfiles 
 import obj_detect_pytorch.dataset.make_dataset as mdata
 from fpdf import FPDF
@@ -22,7 +21,6 @@ import torch
 import obj_detect_pytorch.models.transform as T
 from obj_detect_pytorch.models.engine import train_one_epoch, evaluate
 import obj_detect_pytorch.models.utils as utils2
-import pickle
 
 
 def get_metadata():
@@ -148,23 +146,16 @@ def get_transform(train):
 def train(**args):
     #download dataset if it doens't exist.
     mdata.download_dataset()
+    
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device:', device)
-
+    torch.cuda.empty_cache()
+    
     #saving names of the classes
     class_name = args['class_names']
     classes = class_name.split(',')
-    
-    nums = [cfg.MODEL_DIR, args['model_name']]
-    cat_file = '{0}/categories_{1}.txt'.format(*nums) 
-    
-    #writing file with the classes
-    with open(cat_file, 'w') as filehandle:
-        for listitem in classes:
-            listitem = listitem.lstrip()
-            filehandle.write('%s\n' % listitem)
-    
+        
     # number of classes
     num_classes = int(args['num_classes'])
     # use our dataset and defined transformations
@@ -217,23 +208,29 @@ def train(**args):
     #                                    data_size, time_prepare, mn, std)
  
     print("Training done.")
-    run_results = "Done."
+    
+    #writing file with the classes
     nums = [cfg.MODEL_DIR, args['model_name']]
-    model_path = '{0}/{1}.pt'.format(*nums)
-   
+    cat_file = '{0}/categories_{1}.txt'.format(*nums) 
+    with open(cat_file, 'w') as filehandle:
+        for listitem in classes:
+            listitem = listitem.lstrip()
+            filehandle.write('%s\n' % listitem)   
+
     #saving model's parameters
+    run_results = "Done."
+    model_path = '{0}/{1}.pt'.format(*nums)
     torch.save(model.state_dict(), model_path)
     print("Model saved.")
-    torch.cuda.empty_cache()
     
     #copy model weigths, classes to nextcloud.
     dest_dir = cfg.REMOTE_MODELS_DIR
     print("[INFO] Upload %s to %s" % (model_path, dest_dir))
     
-    #uploading class names.
+    #uploading class names to nextcloud.
     mutils.upload_model(cat_file)
     
-    #uploading weights.
+    #uploading weights to nextcloud.
     mutils.upload_model(model_path)
     
     return run_results
@@ -252,14 +249,7 @@ def get_predict_args():
             required=True,
             type="file",
             location="form"),
-        
-        #"outputtype": fields.Str(
-        #    required=False,  
-        #    missing="json",  
-        #    enum=["json", "pdf"],  
-        #    description="Specifies the output format." 
-        #),
-        
+
         "threshold": fields.Str(
             required=False, 
             missing= 0.8,  
@@ -289,8 +279,8 @@ def predict_file(**args):
     message = 'Not implemented in the model (predict_file)'
     return message
  
-def predict(**args):
-    #Download weight files and model.
+def predict(**args): 
+    #Download weight files and model from nextcloud if necessary.
     if (args['model_name'] == "COCO"):
         model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
         CATEGORIES = mutils.category_names()
@@ -299,20 +289,26 @@ def predict(**args):
         #To get the masks just add pred_mask in the prediction and results section.
         nums = [cfg.MODEL_DIR, args['model_name']]
         model_path = '{0}/{1}.pt'.format(*nums)
-        state_dict = torch.load(model_path)
-        model = get_model_instance_segmentation(list(state_dict["roi_heads.mask_predictor.mask_fcn_logits.bias"].size())[0])
-        model.load_state_dict(state_dict)
-        CATEGORIES = []
-        # open file and read the content in a list
-        nums = [cfg.MODEL_DIR, args['model_name']]
-        cat_file = '{0}/categories_{1}.txt'.format(*nums)
-        with open(cat_file, 'r') as filehandle:
-            for line in filehandle:
-                currentPlace = line[:-1]
-                CATEGORIES.append(currentPlace)
+        
+        if os.path.exists(model_path):
+            state_dict = torch.load(model_path)
+            model = get_model_instance_segmentation(list(state_dict["roi_heads.mask_predictor.mask_fcn_logits.bias"].size())[0])
+            model.load_state_dict(state_dict)
+            CATEGORIES = []
+            # open file and read the content in a list
+            nums = [cfg.MODEL_DIR, args['model_name']]
+            cat_file = '{0}/categories_{1}.txt'.format(*nums)
+            with open(cat_file, 'r') as filehandle:
+                for line in filehandle:
+                    currentPlace = line[:-1]
+                    CATEGORIES.append(currentPlace)
+        else:
+            message = 'Model not found.'
+            return message
            
     model.eval()
     
+    #tranform to tensor.
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()]) 
     
     #reading the image and saving it.
@@ -338,10 +334,7 @@ def predict(**args):
         pred_boxes = 'null'
         pred_class = 'null'
         pred_score = 'null'
-    
-    #a = mmetrics.get_metrics() #Predict images of the classifier and get the metrics.
-   
-    #if (args["outputtype"] == "pdf"):  
+        
     if (pred_t!='null'):
         #PDF Format:    
         #Drawing the boxes around the objects in the images + putting text + probabilities. 
@@ -360,18 +353,6 @@ def predict(**args):
         #Create the PDF file.
         result_pdf = resfiles.create_pdf(result_image, pred_boxes, pred_class, pred_score)
 
-        #return flask.send_file(filename_or_fp=result_pdf,
-        #                   as_attachment=True,
-        #                   attachment_filename=os.path.basename(result_pdf))
-                         
-        #message = 'Not implemented in the model (predict_file)'
-        #return message 
-        
-    #else: 
-        #JSON format:
-        #message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
-        #return message
-        
     message = mutils.format_prediction(pred_boxes,pred_class, pred_score)  
     return message
 

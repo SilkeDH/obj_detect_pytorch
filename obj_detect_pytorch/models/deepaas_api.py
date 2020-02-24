@@ -155,9 +155,16 @@ def train(**args):
     #saving names of the classes
     class_name = args['class_names']
     classes = class_name.split(',')
-        
+
     # number of classes
     num_classes = int(args['num_classes'])
+    
+    # check if the number of classes coincides with the number of names
+    if len(classes)!= num_classes:
+        print('The number of classes is not the same as the number of names given.')
+        run_results = "Error."
+        return run_results
+    
     # use our dataset and defined transformations
     dataset = mdata.Dataset('Dataset', get_transform(train=True))
     dataset_test = mdata.Dataset('Dataset', get_transform(train=False))

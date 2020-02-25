@@ -143,6 +143,10 @@ def get_transform(train):
         transforms.append(T.RandomHorizontalFlip(0.5))
     return T.Compose(transforms)
 
+
+from flaat import Flaat
+flaat = Flaat()
+@flaat.login_required()
 def train(**args):
     #download dataset if it doens't exist.
     mdata.download_dataset()
